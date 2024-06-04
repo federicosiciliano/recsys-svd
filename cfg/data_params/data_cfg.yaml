@@ -13,11 +13,11 @@ densify_index: True #whether to densify the index of the dataset
 
 dataset_params:
   split_keys:
-      train: [sid, uid]
-      val: [sid, uid]
-      test: [sid, uid]
+      train: [sid, uid, rating]
+      val: [sid, uid, rating]
+      test: [sid, uid, rating]
 collator_params:
-  sequential_keys: [sid] #timestamp, rating #the sequential keys of the dataset
+  sequential_keys: [sid, rating] #timestamp, rating #the sequential keys of the dataset
   padding_value: 0 #the padding value for the dataset
   lookback: 200 #30 #[20, 50, 100, 200] #the lookback of the dataset
   lookforward: 1 #3 #the lookforward of the dataset

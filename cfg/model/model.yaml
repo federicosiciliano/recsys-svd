@@ -6,14 +6,14 @@ optimizer:
 
 loss: SequentialBCEWithLogitsLoss
 
-useSVD: False
-freeze_emb: False
+# useSVD: False
+# freeze_emb: False
 
 # useSVD: True
 # freeze_emb: False
 
-# useSVD: True
-# freeze_emb: True
+useSVD: True
+freeze_emb: True
 
 metrics:
   - Precision
