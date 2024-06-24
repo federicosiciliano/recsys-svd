@@ -1,5 +1,5 @@
 /accelerator: cuda #cuda #cpu
-/devices: [2]
+/devices: [0]
 /enable_checkpointing: True
 max_epochs: 600
 callbacks:

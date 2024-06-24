@@ -169,118 +169,118 @@ loaders = easy_rec.rec_torch.prepare_rec_data_loaders(datasets, **cfg["model"]["
 # ### MODEL 
 
 # In[513]:
-for _ in cfg.sweep("model.rec_model.emb_size"):
-    cfg["model"]["rec_model"]["num_items"] = np.max(list(maps["sid"].values()))
-    cfg["model"]["rec_model"]["num_users"] = np.max(list(maps["uid"].values()))
-    cfg["model"]["rec_model"]["lookback"] = cfg["data_params"]["collator_params"]["lookback"]
+#for _ in cfg.sweep("model.rec_model.emb_size"):
+cfg["model"]["rec_model"]["num_items"] = np.max(list(maps["sid"].values()))
+cfg["model"]["rec_model"]["num_users"] = np.max(list(maps["uid"].values()))
+cfg["model"]["rec_model"]["lookback"] = cfg["data_params"]["collator_params"]["lookback"]
 
 
-    # In[514]:
+# In[514]:
 
 
-    #load the default SASRec module with the specified parameters
-    main_module = easy_rec.rec_torch.create_rec_model(**cfg["model"]["rec_model"])
-    #print(main_module)
+#load the default SASRec module with the specified parameters
+main_module = easy_rec.rec_torch.create_rec_model(**cfg["model"]["rec_model"])
+#print(main_module)
 
 
-    # In[515]:
+# In[515]:
 
 
-    #Set the item embedding layer with SVD right matrix (if freeze_emb=True the matrix weights will remain fixed)
+#Set the item embedding layer with SVD right matrix (if freeze_emb=True the matrix weights will remain fixed)
 
-    useSVD = cfg["model"]["useSVD"]
-    freeze_emb = cfg["model"]["freeze_emb"]
+useSVD = cfg["model"]["useSVD"]
+freeze_emb = cfg["model"]["freeze_emb"]
 
-    if useSVD:
-        num_users = cfg["model"]["rec_model"]["num_users"]
-        num_items = cfg["model"]["rec_model"]["num_items"]
-        emb_size = cfg["model"]["rec_model"]["emb_size"]
-        
-        utility_matrix = create_utility_matrix(loaders['train'], num_users, num_items)
-        embedding_matrix = create_embedding_matrix(utility_matrix, emb_size)
+if useSVD:
+    num_users = cfg["model"]["rec_model"]["num_users"]
+    num_items = cfg["model"]["rec_model"]["num_items"]
+    emb_size = cfg["model"]["rec_model"]["emb_size"]
+    
+    utility_matrix = create_utility_matrix(loaders['train'], num_users, num_items)
+    embedding_matrix = create_embedding_matrix(utility_matrix, emb_size)
 
-        new_emb_matrix = torch.tensor(embedding_matrix, dtype=torch.float32)
+    new_emb_matrix = torch.tensor(embedding_matrix, dtype=torch.float32)
 
-        #initialize the item embedding matrix with the new embedding matrix 
-        main_module.item_emb.weight.data = new_emb_matrix
+    #initialize the item embedding matrix with the new embedding matrix 
+    main_module.item_emb.weight.data = new_emb_matrix
 
-        if freeze_emb:
-            for param in main_module.item_emb.parameters():
-                param.requires_grad = False
-
-
-    # In[516]:
+    if freeze_emb:
+        for param in main_module.item_emb.parameters():
+            param.requires_grad = False
 
 
-    exp_found, experiment_id = easy_exp.exp.get_set_experiment_id(cfg)
-    print("Experiment already found:", exp_found, "----> The experiment id is:", experiment_id)
+# In[516]:
 
 
-    # In[517]:
+exp_found, experiment_id = easy_exp.exp.get_set_experiment_id(cfg)
+print("Experiment already found:", exp_found, "----> The experiment id is:", experiment_id)
 
 
-    if not exp_found:
+# In[517]:
 
 
-        # In[518]:
+if not exp_found:
 
 
-        trainer_params = easy_torch.preparation.prepare_experiment_id(cfg["model"]["trainer_params"], experiment_id)
-
-        # Prepare callbacks and logger using the prepared trainer_params
-        trainer_params["callbacks"] = easy_torch.preparation.prepare_callbacks(trainer_params)
-        trainer_params["logger"] = easy_torch.preparation.prepare_logger(trainer_params)
-
-        # Prepare the trainer using the prepared trainer_params
-        trainer = easy_torch.preparation.prepare_trainer(**trainer_params)
-
-        model_params = cfg["model"].copy()
-
-        model_params["loss"] = easy_torch.preparation.prepare_loss(cfg["model"]["loss"], easy_rec.losses)
-
-        # Prepare the optimizer using configuration from cfg
-        model_params["optimizer"] = easy_torch.preparation.prepare_optimizer(**cfg["model"]["optimizer"])
-
-        # Prepare the metrics using configuration from cfg
-        model_params["metrics"] = easy_torch.preparation.prepare_metrics(cfg["model"]["metrics"], easy_rec.metrics)
-
-        # Create the model using main_module, loss, and optimizer
-        model = easy_torch.process.create_model(main_module, **model_params)
+    # In[518]:
 
 
-        # In[519]:
+    trainer_params = easy_torch.preparation.prepare_experiment_id(cfg["model"]["trainer_params"], experiment_id)
+
+    # Prepare callbacks and logger using the prepared trainer_params
+    trainer_params["callbacks"] = easy_torch.preparation.prepare_callbacks(trainer_params)
+    trainer_params["logger"] = easy_torch.preparation.prepare_logger(trainer_params)
+
+    # Prepare the trainer using the prepared trainer_params
+    trainer = easy_torch.preparation.prepare_trainer(**trainer_params)
+
+    model_params = cfg["model"].copy()
+
+    model_params["loss"] = easy_torch.preparation.prepare_loss(cfg["model"]["loss"], easy_rec.losses)
+
+    # Prepare the optimizer using configuration from cfg
+    model_params["optimizer"] = easy_torch.preparation.prepare_optimizer(**cfg["model"]["optimizer"])
+
+    # Prepare the metrics using configuration from cfg
+    model_params["metrics"] = easy_torch.preparation.prepare_metrics(cfg["model"]["metrics"], easy_rec.metrics)
+
+    # Create the model using main_module, loss, and optimizer
+    model = easy_torch.process.create_model(main_module, **model_params)
 
 
-        # Prepare the emission tracker using configuration from cfg
-        tracker = easy_torch.preparation.prepare_emission_tracker(**cfg["model"]["emission_tracker"], experiment_id=experiment_id)
+    # In[519]:
 
 
-        # ### Train
-
-        # In[520]:
-
-
-        # Train the model using the prepared trainer, model, and data loaders
-        easy_torch.process.train_model(trainer, model, loaders, tracker=tracker, val_key=["val","test"])
+    # Prepare the emission tracker using configuration from cfg
+    tracker = easy_torch.preparation.prepare_emission_tracker(**cfg["model"]["emission_tracker"], experiment_id=experiment_id)
 
 
-        # ### TEST
+    # ### Train
 
-        # In[521]:
-
-
-        easy_torch.process.test_model(trainer, model, loaders, tracker=tracker)
+    # In[520]:
 
 
-        # In[522]:
+    # Train the model using the prepared trainer, model, and data loaders
+    easy_torch.process.train_model(trainer, model, loaders, tracker=tracker, val_key=["val","test"])
 
 
-        # Save experiment and print the current configuration
-        #save_experiment_and_print_config(cfg)
-        easy_exp.exp.save_experiment(cfg)
+    # ### TEST
 
-        # Print completion message
-        print("Execution completed.")
-        print("######################################################################")
-        print()
+    # In[521]:
+
+
+    easy_torch.process.test_model(trainer, model, loaders, tracker=tracker)
+
+
+    # In[522]:
+
+
+    # Save experiment and print the current configuration
+    #save_experiment_and_print_config(cfg)
+    easy_exp.exp.save_experiment(cfg)
+
+    # Print completion message
+    print("Execution completed.")
+    print("######################################################################")
+    print()
 
