@@ -29,11 +29,16 @@ def create_utility_matrix(data_loader, num_users, num_items):
     return utility_matrix
 
 
-def create_embedding_matrix(utility_matrix, emb_size):
+def create_embedding_matrix(utility_matrix, emb_size, use_diag=False):
     U, S, V_t = np.linalg.svd(utility_matrix)
 
     V = V_t.transpose()
-    embedding_matrix = np.matrix(V_t[:, :emb_size])
+    #embedding_matrix = np.matrix(V_t[:, :emb_size])
+    if use_diag:
+        embedding_matrix = np.matmul(np.diag(S),np.matrix(V))[:,:emb_size]
+    else:
+        embedding_matrix = np.matrix(V[:, :emb_size])
+
     embedding_matrix[0,:] = 0
 
     return embedding_matrix   
