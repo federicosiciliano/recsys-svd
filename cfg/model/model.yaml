@@ -8,6 +8,8 @@ loss: SequentialBCEWithLogitsLoss
 
 useSVD: False
 freeze_emb: False
+use_diag: False
+#svd_cutoff: 128
 
 # useSVD: True
 # freeze_emb: False
