@@ -1,4 +1,4 @@
 batch_size: 128 #2048
-/num_workers: 1
+/num_workers: 4
 #/persistent_workers: True
 #/pin_memory: True

@@ -11,22 +11,22 @@ def create_utility_matrix_from_dataset(dataset, num_users, num_items):
         for i,item in enumerate(items):
             utility_matrix_from_dataset[user,item] = ratings[i]
         
-    return utility_matrix_from_dataset 
+    return utility_matrix_from_dataset[1:,1:] #FS: removed padding and fake user0: can generate errors?
 
 
-# Create utility matrix from the train DataLoader
-def create_utility_matrix(data_loader, num_users, num_items):
-    utility_matrix = np.zeros((num_users+1, num_items+1)) 
-    for batch in data_loader:
-        users = batch['uid']
-        items = batch['in_sid']
-        ratings = batch['in_rating']
+# # Create utility matrix from the train DataLoader
+# def create_utility_matrix(data_loader, num_users, num_items):
+#     utility_matrix = np.zeros((num_users+1, num_items+1)) 
+#     for batch in data_loader:
+#         users = batch['uid']
+#         items = batch['in_sid']
+#         ratings = batch['in_rating']
         
-        for i,user in enumerate(users):
-            for j,item in enumerate(items[i]):
-                utility_matrix[user.item(),item.item()] = ratings[i][j].item()
+#         for i,user in enumerate(users):
+#             for j,item in enumerate(items[i]):
+#                 utility_matrix[user.item(),item.item()] = ratings[i][j].item()
         
-    return utility_matrix
+#     return utility_matrix
 
 
 def create_embedding_matrix(utility_matrix, emb_size, use_diag=False):
@@ -39,6 +39,8 @@ def create_embedding_matrix(utility_matrix, emb_size, use_diag=False):
     else:
         embedding_matrix = np.matrix(V[:, :emb_size])
 
-    embedding_matrix[0,:] = 0
+    # Add padding for the zero vector #FS: modified to add padding
+    zero_vector = np.zeros((1, emb_size))
+    embedding_matrix = np.concatenate((zero_vector, embedding_matrix), axis=0)
 
-    return embedding_matrix   
+    return embedding_matrix
