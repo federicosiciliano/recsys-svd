@@ -7,13 +7,17 @@ optimizer:
 loss: SequentialBCEWithLogitsLoss
 
 useSVD: True
-£freeze_emb:
-  default: False
-  values: [True, False]
-£use_diag:
-  default: False
-  values: [True, False]
+use_diag: False
+freeze_emb: False
 svd_cutoff: 64
+
+#£freeze_emb:
+# default: False
+#  values: [True, False]
+#£use_diag:
+#  default: False
+#  values: [True, False]
+#svd_cutoff: 64
 
 # useSVD: False
 
