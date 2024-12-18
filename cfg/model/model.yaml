@@ -6,20 +6,12 @@ optimizer:
 
 loss: SequentialBCEWithLogitsLoss
 
-useSVD: True
+useSVD: False
 use_diag: False
 freeze_emb: False
-svd_cutoff: 64
+#svd_cutoff: 59 #check in code, if true: use knee, if False: don't use, if integer: cutoff at that integer
+#mean_imputation: both
 
-#£freeze_emb:
-# default: False
-#  values: [True, False]
-#£use_diag:
-#  default: False
-#  values: [True, False]
-#svd_cutoff: 64
-
-# useSVD: False
 
 metrics:
   - Precision
@@ -70,6 +62,6 @@ log_params:
 
 +trainer_params: trainer_params_cfg
 
-+emission_tracker: emission_tracker_cfg
+#+emission_tracker: emission_tracker_cfg
 
-+rec_model: SASRec
++rec_model: GRU4Rec

@@ -1,0 +1,14 @@
+name: CORE
+
+
+£emb_size:
+  default: 8
+  values: [8,16,32]
+
+item_dropout_rate: 0.2 #0.2 ml-1m 0.5 amazon_beauty amazon_games
+sess_dropout_rate: 0.2
+
+__global__:
+  data_params.collator_params.keep_last.train: 1
+  data_params.collator_params.keep_last.val: null
+  data_params.collator_params.keep_last.test: null
