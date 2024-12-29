@@ -1,12 +1,35 @@
 name: BERT4Rec
 
 £emb_size:
-  default: 64
-  values: [64,128,256]
+  default: 8
+  values: [8,16,32,64,128,256]
 
-bert_num_blocks: 1
-bert_num_heads: 4
-dropout_rate: 0.1
+£bert_num_blocks:
+  default: 1
+  values: [1, 2]
+  tune:
+    name: randint
+    params:
+      lower: 1
+      upper: 2
+
+£bert_num_heads: #must be a divisor of emb_size
+  default: 1
+  values: [1, 2, 4]
+  tune:
+    name: choice
+    params:
+      categories: [1, 2, 4]
+
+£dropout_rate:
+  default: 0.2
+  values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+  tune:
+    name: quniform
+    params:
+      lower: 0.0
+      upper: 0.5
+      q: 0.05
 
 
 # ^loader_params:

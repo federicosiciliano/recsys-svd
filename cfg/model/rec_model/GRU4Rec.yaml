@@ -1,13 +1,26 @@
 name: GRU4Rec
 
-hidden_size: 100
-num_layers: 1
-
-dropout_hidden: 0.0
-dropout_input: 0.2
-
 £emb_size:
   default: 64
-  values: [64,128,256]
+  values: [32, 64, 128, 256]
 
+£num_layers:
+  default: 1
+  values: [1, 2]
+  tune:
+    name: randint
+    params:
+      lower: 1
+      upper: 2
 
+dropout_hidden: 0.0
+
+£dropout_input:
+  default: 0.2
+  values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+  tune:
+    name: quniform
+    params:
+      lower: 0.0
+      upper: 0.5
+      q: 0.05

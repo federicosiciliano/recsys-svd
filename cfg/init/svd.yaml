@@ -1,0 +1,9 @@
+method: svd
+mean_imputation_strategy: item
+svd_params:
+  full_matrices: False
+
+# Only for recsys training
+# use_diag: False
+# freeze_emb: False
+# cutoff: True #check in code, if true: use knee, if False: don't use, if integer: cutoff at that integer

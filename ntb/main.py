@@ -28,7 +28,7 @@ if connect_to_drive:
 if connect_to_drive:
     #Install FS code
     #!pip install  --upgrade --no-deps --force-reinstall git+https://github.com/federicosiciliano/easy_lightning.git@fedsic
-    get_ipython().system('pip install  --upgrade --no-deps --force-reinstall git+https://github.com/PokeResearchLab/easy_lightning.git')
+    get_ipython().system('pip install  --upgrade --force-reinstall git+https://github.com/PokeResearchLab/easy_lightning.git')
 
     get_ipython().system('pip install pytorch_lightning')
 
@@ -206,14 +206,12 @@ for _ in cfg.sweep("model.rec_model.emb_size"):
 
         #initialize the item embedding matrix with the new embedding matrix 
         if svd_cutoff is not None and svd_cutoff < emb_size:
-            #main_module.item_emb.weight.data[:,:svd_cutoff] = new_emb_matrix[:,:svd_cutoff]
-            main_module.look_up.weight.data[:,:svd_cutoff] = new_emb_matrix[:,:svd_cutoff]
+            main_module.item_emb.weight.data[:,:svd_cutoff] = new_emb_matrix[:,:svd_cutoff]
         else:
             cfg["model"].pop("svd_cutoff",None) #remove the svd_cutoff parameter if not used
             #to keep consistent with previous configs
-            #main_module.item_emb.weight.data = new_emb_matrix
-            main_module.look_up.weight.data = new_emb_matrix
-
+            main_module.item_emb.weight.data = new_emb_matrix
+        
         if freeze_emb:
             for param in main_module.item_emb.parameters():
                 param.requires_grad = False

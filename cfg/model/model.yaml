@@ -1,14 +1,22 @@
 optimizer:
   name: Adam
-  # params:
-  #   lr: 1.0e-3
-  #   betas: [0.9, 0.98]
+  params:
+    £lr:
+      default: 1.0e-3
+      values: [1.0e-1, 1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5]
+      tune:
+        name: quniform #loguniform
+        params:
+          lower: 1.0e-5
+          upper: 1.0e-1
+          q: 1.0e-5
+    #betas: [0.9, 0.98]
 
 loss: SequentialBCEWithLogitsLoss
 
-useSVD: False
-use_diag: False
-freeze_emb: False
+# useSVD: True
+# use_diag: False
+# freeze_emb: False
 #svd_cutoff: 59 #check in code, if true: use knee, if False: don't use, if integer: cutoff at that integer
 #mean_imputation: both
 
@@ -24,6 +32,7 @@ metrics:
 log_params:
   on_epoch: True
   on_step: False
+  sync_dist: True #when logging on epoch level in distributed setting to accumulate the metric across devices; for raytune DDP
 
 /step_routing:
   model_input_from_batch: ["in_sid", "out_sid"]
@@ -64,4 +73,4 @@ log_params:
 
 #+emission_tracker: emission_tracker_cfg
 
-+rec_model: GRU4Rec
++rec_model: SASRec #GRU4Rec
