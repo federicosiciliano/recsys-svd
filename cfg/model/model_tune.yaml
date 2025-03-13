@@ -1,0 +1,67 @@
+optimizer:
+  name: Adam
+  params:
+    £lr:
+      default: 1.0e-3
+      values: [1.0e-1, 1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5]
+      # tune:
+      #   name: quniform #loguniform
+      #   params:
+      #     lower: 1.0e-5
+      #     upper: 1.0e-1
+      #     q: 1.0e-5
+    #betas: [0.9, 0.98]
+
+loss: SequentialBCEWithLogitsLoss
+
+metrics:
+  - Precision
+  - Recall
+  - F1
+  - MAP
+  - NDCG
+  - MRR
+
+log_params:
+  on_epoch: True
+  on_step: False
+  #sync_dist: True #when logging on epoch level in distributed setting to accumulate the metric across devices; for raytune DDP
+
+/step_routing:
+  model_input_from_batch: ["in_sid", "out_sid"]
+  loss_input_from_model_output:
+    input: null
+  loss_input_from_batch:
+    target: relevance
+  metrics_input_from_batch:
+    Precision:
+      relevance: relevance
+    Recall:
+      relevance: relevance
+    F1:
+      relevance: relevance
+    MAP:
+      relevance: relevance
+    NDCG:
+      relevance: relevance
+    MRR:
+      relevance: relevance
+  metrics_input_from_model_output:
+    Precision:
+      scores: null
+    Recall:
+      scores: null
+    F1:
+      scores: null
+    MAP:
+      scores: null
+    NDCG:
+      scores: null
+    MRR:
+      scores: null
+
++loader_params: loader_params_cfg
+
++trainer_params: trainer_params_cfg_tune
+
++rec_model: GRU4Rec #SASRec #GRU4Rec #BERT4Rec

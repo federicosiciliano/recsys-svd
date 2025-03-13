@@ -1,7 +1,7 @@
-/accelerator: cuda #cuda #cpu
-#/devices: [0]
+/accelerator: gpu #gpu #cpu
+/devices: [0]
 /enable_checkpointing: True
-max_epochs: 500
+max_epochs: 600
 callbacks:
     - ModelCheckpoint:
         /dirpath: ${__exp__.project_folder}out/models/${__exp__.name}/
@@ -12,15 +12,9 @@ callbacks:
         mode: max #min
         # monitor: val_loss/dataloader_idx_0 #val_loss
         # mode: min
-        enable_version_counter: False #If False, it will overwrite the best model
-    - /RayTrainReportCallback: {}
+        #enable_version_counter: False #If False, it will overwrite the best model
 /logger:
     name: CSVLogger
     params:
         save_dir: ${__exp__.project_folder}out/log/${__exp__.name}/
         version: 0 #If 0, it will overwrite the existing file
-
-#For Raytune training
-/strategy: RayDDPStrategy #RayDDPStrategy, RayFSDPStrategy, RayDeepSpeedStrategy
-/plugins:
-    - RayLightningEnvironment

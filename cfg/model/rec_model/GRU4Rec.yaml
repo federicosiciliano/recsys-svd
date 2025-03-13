@@ -2,7 +2,7 @@ name: GRU4Rec
 
 £emb_size:
   default: 64
-  values: [32, 64, 128, 256]
+  values: [64]
 
 £num_layers:
   default: 1

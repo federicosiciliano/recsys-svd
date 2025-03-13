@@ -1,47 +1,3 @@
-#Exps
-
-# Dataset: ml-1m, foursquare (4)
-# Emb size: 64
-# GRU4Rec/SASRec/BERT4Rec (3)
-# Init: random, svd, leporid (3), svd(knee), 
-
-# parametri svd: cutoff (knee o no)
-# parametri leporid: (numero vicini (100-1000/2000), alpha (0.3-0.7-1), 
-
-
-# tot: 36
-# budget: 2h
-# total time: 72h (3 days)
-
-#---> altri emb sizes...
-
-#learning_rate
-# batch_size
-# lookback
-
-
-
-# BERT4Rec:
-# bert_num_blocks
-# bert_num_heads
-# dropout_rate
-# data_params.collator_params.mask_prob
-
-
-
-# GRU:
-# num_layers
-# dropout_input
-
-# SASRec
-# num_blocks
-# num_heads
-# dropout_rate
-
-
-
-
-
 #!/usr/bin/env python
 # coding: utf-8
 
@@ -86,6 +42,12 @@ import numpy as np
 from copy import deepcopy
 import os
 import sys
+import time
+
+
+from ray import tune
+from ray.train.torch import TorchTrainer
+from ray.train import ScalingConfig, RunConfig#, CheckpointConfig
 
 
 # ## Define paths
@@ -124,10 +86,11 @@ img_folder = os.path.join(out_folder,"img")
 
 #attach the source folder to the start of sys.path
 sys.path.insert(0, project_folder)
+os.environ['PYTHONPATH'] = project_folder #for raytune workers
+
 
 #import from src directory
-# from src import ??? as additional_module
-import easy_rec as additional_module #REMOVE THIS LINE IF IMPORTING OWN ADDITIONAL MODULE
+import src.module as dec_module
 
 import easy_exp, easy_rec, easy_torch #easy_data
 
@@ -141,13 +104,14 @@ import easy_exp, easy_rec, easy_torch #easy_data
 # In[7]:
 
 
-cfg = easy_exp.cfg.load_configuration("config_rec")
+cfg = easy_exp.cfg.load_configuration("config_tune")
 
 
 # In[8]:
-
-
-from ray import tune
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+#time.sleep(8*60*60)
+print("Starting at:",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 
 
 # In[9]:
@@ -165,20 +129,6 @@ def prepare_raytune_config(cfg):
 
 
 raytune_cfg = prepare_raytune_config(cfg)
-
-
-# In[11]:
-
-
-#from ray.train.lightning import RayDDPStrategy, RayLightningEnvironment, RayTrainReportCallback, prepare_trainer
-
-
-# In[12]:
-
-
-# cfg["model"]["trainer_params"]["strategy"] = RayDDPStrategy()
-# #cfg["model"]["trainer_params"]["callbacks"].append(lambda : RayTrainReportCallback())
-# cfg["model"]["trainer_params"]["plugins"] = cfg["model"]["trainer_params"].get("plugins", []) + [RayLightningEnvironment()]
 
 
 # In[13]:
@@ -206,6 +156,8 @@ def run_config(cfg, if_exp_found=None, raytune=False):
 
     main_module = easy_rec.preparation.prepare_rec_model(cfg, maps)
 
+    dec_module.prepare_embeddings_based_on_init(cfg, main_module, processed_data_folder)
+
     trainer = easy_torch.preparation.complete_prepare_trainer(cfg, experiment_id, additional_module=easy_rec, raytune=raytune)
 
     model = easy_torch.preparation.complete_prepare_model(cfg, main_module, additional_module=easy_rec)
@@ -221,7 +173,7 @@ def run_config(cfg, if_exp_found=None, raytune=False):
     # Early stopping with Tune schedulers may not run anything after training
 
 
-# In[14]:
+# In[28]:
 
 
 def run_raytune_cfg(raytune_cfg, cfg, if_exp_found=None):
@@ -258,21 +210,18 @@ def run_raytune_cfg(raytune_cfg, cfg, if_exp_found=None):
 
 max_num_epochs = cfg["model"]["trainer_params"]["max_epochs"]
 scheduler = tune.schedulers.ASHAScheduler(
-        metric="val_NDCG_@10/dataloader_idx_0",
-        mode="min",
+        metric="val_F1_@10/dataloader_idx_0",
+        mode="max",
         max_t=max_num_epochs,
-        grace_period=1,
-        reduction_factor=2)
+        grace_period=10,
+        reduction_factor=3)
 
 
 # In[17]:
 
 
-from ray.train.torch import TorchTrainer
-from ray.train import ScalingConfig#, RunConfig, CheckpointConfig
-
 scaling_config = ScalingConfig(
-    num_workers=2, use_gpu=True, resources_per_worker={"CPU": 8, "GPU": 1}
+    num_workers=1, use_gpu=True, resources_per_worker={"CPU": 8, "GPU": 1}
 )
 
 # run_config = RunConfig(
@@ -291,15 +240,13 @@ ray_trainer = TorchTrainer(
 )
 
 
-
 # In[18]:
 
 
 os.environ["RAY_CHDIR_TO_TRIAL_DIR"] = "0" #To avoid changing working directory
-
+#os.environ["RAY_RESULTS_DIR"] = os.path.join(os.getcwd(),"out") #To avoid changing working directory
 
 # In[19]:
-
 
 tuner = tune.Tuner(
     ray_trainer,
@@ -309,27 +256,21 @@ tuner = tune.Tuner(
         # mode="max",
         num_samples=1000,
         scheduler=scheduler,
-        time_budget_s=1*60*60, #seconds #May raise WARNING Failed to fetch metrics for,
-        max_concurrent_trials=2,
+        time_budget_s=2*60*60, #seconds #May raise WARNING Failed to fetch metrics for
     ),
+    #run_config = RunConfig(storage_path="../out/", name="ray_results")
 )
 
 results = tuner.fit()
 
 
-# In[20]:
-
-
-results
-
-
 # In[21]:
 
 
-results.get_best_result(metric="val_NDCG_@10/dataloader_idx_0", mode="max")
+results.get_best_result(metric="val_F1_@10/dataloader_idx_0", mode="max")
 
 
-# In[22]:
+# In[ ]:
 
 
 #Problems with parallel execution:
@@ -343,6 +284,5 @@ results.get_best_result(metric="val_NDCG_@10/dataloader_idx_0", mode="max")
 
 # In[ ]:
 
-
-
+print("Ending at:",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 

@@ -1,8 +1,21 @@
 method: leporid
-k: 1000 #number of neighbors
-alpha: 0.7
+£k: #number of neighbours
+  default: 1000
+  values: [100, 1000, 2000]
+  # tune:
+  #     name: choice
+  #     params:
+  #       categories: [100, 1000, 2000]
+£alpha:
+  default: 0.7
+  values: [0.1, 0.3, 0.5, 0.7, 0.9]
+  # tune:
+  #     name: choice
+  #     params:
+  #       categories: [0.1, 0.3, 0.5, 0.7, 0.9]
 
 # Only for recsys training
-# use_diag: False
-# freeze_emb: False
-# cutoff: True #check in code, if true: use knee, if False: don't use, if integer: cutoff at that integer
+training:
+  use_diag: False
+  freeze_emb: False
+  cutoff: False #check in code, if true: use knee, if False: don't use, if integer: cutoff at that integer

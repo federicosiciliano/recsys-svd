@@ -1,12 +1,12 @@
 £batch_size:
   default: 128
   values: [32, 128, 512]
-  raytune:
-    name: qrandint
-    params:
-      lower: 16
-      upper: 512
-      q: 16
+  # tune:
+  #   name: qrandint
+  #   params:
+  #     lower: 16
+  #     upper: 512
+  #     q: 16
 drop_last: True
 /num_workers: 4
 #/persistent_workers: True

@@ -5,13 +5,13 @@
 
 # ## Connect to Drive
 
-# In[20]:
+# In[1]:
 
 
 connect_to_drive = False
 
 
-# In[21]:
+# In[2]:
 
 
 #Run command and authorize by popup --> other window
@@ -22,20 +22,20 @@ if connect_to_drive:
 
 # ## Install packages
 
-# In[22]:
+# In[3]:
 
 
 if connect_to_drive:
     #Install FS code
     #!pip install  --upgrade --no-deps --force-reinstall git+https://github.com/federicosiciliano/easy_lightning.git@fedsic
-    get_ipython().system('pip install  --upgrade --force-reinstall git+https://github.com/PokeResearchLab/easy_lightning.git')
+    get_ipython().system('pip install  --upgrade --no-deps --force-reinstall git+https://github.com/PokeResearchLab/easy_lightning.git')
 
     get_ipython().system('pip install pytorch_lightning')
 
 
 # ## IMPORTS
 
-# In[23]:
+# In[4]:
 
 
 #Put all imports here
@@ -48,17 +48,18 @@ import sys
 #import cv2
 import torch
 import csv
+from copy import deepcopy
 
 
-# In[24]:
+# In[5]:
 
 
-import setuptools.dist
+#import setuptools.dist
 
 
 # ## Define paths
 
-# In[25]:
+# In[6]:
 
 
 #every path should start from the project folder:
@@ -85,13 +86,14 @@ img_folder = os.path.join(out_folder,"img")
 
 # ## Import own code
 
-# In[26]:
+# In[7]:
 
 
 #To import from src:
 
 #attach the source folder to the start of sys.path
 sys.path.insert(0, project_folder)
+os.environ['PYTHONPATH'] = project_folder #for raytune workers
 
 #import from src directory
 from src.module import *
@@ -105,194 +107,75 @@ import easy_exp, easy_rec, easy_torch #easy_data
 
 # ### Data
 
-# In[27]:
+# In[8]:
 
 
 cfg = easy_exp.cfg.load_configuration("config_rec")
 
+
+# In[9]:
+
+
+#---> for _ in cfg.sweep("data_params.name"):
+#---> for _ in cfg.sweep("model.rec_model.emb_size"):
+
 for _ in cfg.sweep("model.rec_model.emb_size"):
-
-
-    # In[28]:
-
-
-    cfg["data_params"]["data_folder"] = raw_data_folder
-
-
-    # In[29]:
-
-
-    #cfg["data_params"]["test_sizes"] = [cfg["data_params.dataset_params.out_seq_len.val"],cfg["data_params.dataset_params.out_seq_len.test"]]
-
-    data, maps = easy_rec.data_generation_utils.preprocess_dataset(**cfg["data_params"])
-
-
-    # In[30]:
-
-
-    #Save user and item mappings
-
-
-
-    # In[31]:
-
-
-    datasets = easy_rec.rec_torch.prepare_rec_datasets(data,**cfg["data_params"]["dataset_params"])
-
-
-    # In[32]:
-
-
-    cfg["data_params"]["collator_params"]["num_items"] = np.max(list(maps["sid"].values()))
-
-
-    # In[33]:
-
-
-    collators = easy_rec.rec_torch.prepare_rec_collators(**cfg["data_params"]["collator_params"])
-
-
-    # In[34]:
-
-
-    loaders = easy_rec.rec_torch.prepare_rec_data_loaders(datasets, **cfg["model"]["loader_params"], collate_fn=collators)
-
-
-    # ### MODEL 
-
-    # In[35]:
-
-
-    cfg["model"]["rec_model"]["num_items"] = np.max(list(maps["sid"].values()))
-    cfg["model"]["rec_model"]["num_users"] = np.max(list(maps["uid"].values()))
-    cfg["model"]["rec_model"]["lookback"] = cfg["data_params"]["collator_params"]["lookback"]
-
-
-    # In[36]:
-
-
-    #load the default SASRec module with the specified parameters
-    main_module = easy_rec.rec_torch.create_rec_model(**cfg["model"]["rec_model"])
-
-
-    # In[37]:
-    print(main_module)
-
-    #Set the item embedding layer with SVD right matrix (if freeze_emb=True the matrix weights will remain fixed)
-    useSVD = cfg["model"]["useSVD"]
-
-    if useSVD:
-        freeze_emb = cfg["model"].get("freeze_emb",False)
-        cfg["model.freeze_emb"] = freeze_emb
-        use_diag = cfg["model"].get("use_diag",False)
-        cfg["model.use_diag"] = use_diag
-
-        num_users = cfg["model"]["rec_model"]["num_users"]
-        num_items = cfg["model"]["rec_model"]["num_items"]
-        emb_size = cfg["model"]["rec_model"]["emb_size"]
-        svd_cutoff = cfg["model"].get("svd_cutoff",1000000)
-        
-        utility_matrix = create_utility_matrix_from_dataset(datasets['train'], num_users, num_items)
-
-        # new (imputation)
-        imputation = cfg["model"]["mean_imputation"]
-        
-        centered_utility_matrix = mean_imputation(utility_matrix,imputation)
-        embedding_matrix = create_embedding_matrix(centered_utility_matrix, emb_size, use_diag)
-
-        #embedding_matrix = create_embedding_matrix(utility_matrix, emb_size, use_diag)
-
-        new_emb_matrix = torch.tensor(embedding_matrix, dtype=torch.float32)
-
-        #initialize the item embedding matrix with the new embedding matrix 
-        if svd_cutoff is not None and svd_cutoff < emb_size:
-            main_module.item_emb.weight.data[:,:svd_cutoff] = new_emb_matrix[:,:svd_cutoff]
-        else:
-            cfg["model"].pop("svd_cutoff",None) #remove the svd_cutoff parameter if not used
-            #to keep consistent with previous configs
-            main_module.item_emb.weight.data = new_emb_matrix
-        
-        if freeze_emb:
-            for param in main_module.item_emb.parameters():
-                param.requires_grad = False
-    else:
-        cfg["model"].pop("freeze_emb",None) #remove the freeze_emb parameter if not used
-        cfg["model"].pop("use_diag",None) #remove the use_diag parameter if not used
-
-
-    # In[38]:
+    # In[10]:
 
 
     exp_found, experiment_id = easy_exp.exp.get_set_experiment_id(cfg)
-    print("Experiment already found:", exp_found, "----> The experiment id is:", experiment_id)
+    #print("Experiment already found:", exp_found, "----> The experiment id is:", experiment_id)
+
+    # if exp_found and if_exp_found == "skip":
+    #     #print("Skipping experiment")
+    #     return
+
+    # Save experiment (done here cause Early stopping with Tune schedulers may not run anything after training)
+    easy_exp.exp.save_experiment(cfg)
 
 
     # In[ ]:
 
 
-    if exp_found:
-        continue #TODO: make the notebook/script stop here if the experiment is already found
+    data, maps = easy_rec.preparation.prepare_rec_data(cfg)
+
+
+    # In[12]:
+
+
+    loaders = easy_rec.preparation.prepare_rec_dataloaders(cfg, data, maps)
 
 
     # In[ ]:
 
 
-    trainer_params = easy_torch.preparation.prepare_experiment_id(cfg["model"]["trainer_params"], experiment_id)
+    main_module = easy_rec.preparation.prepare_rec_model(cfg, maps)
 
-    # Prepare callbacks and logger using the prepared trainer_params
-    trainer_params["callbacks"] = easy_torch.preparation.prepare_callbacks(trainer_params)
-    trainer_params["logger"] = easy_torch.preparation.prepare_logger(trainer_params)
 
-    # Prepare the trainer using the prepared trainer_params
-    trainer = easy_torch.preparation.prepare_trainer(**trainer_params)
+    # ### Decomposition
 
-    model_params = cfg["model"].copy()
+    # In[ ]:
 
-    model_params["loss"] = easy_torch.preparation.prepare_loss(cfg["model"]["loss"], easy_rec.losses)
 
-    # Prepare the optimizer using configuration from cfg
-    model_params["optimizer"] = easy_torch.preparation.prepare_optimizer(**cfg["model"]["optimizer"])
-
-    # Prepare the metrics using configuration from cfg
-    model_params["metrics"] = easy_torch.preparation.prepare_metrics(cfg["model"]["metrics"], easy_rec.metrics)
-
-    # Create the model using main_module, loss, and optimizer
-    model = easy_torch.process.create_model(main_module, **model_params)
+    prepare_embeddings_based_on_init(cfg, main_module, processed_data_folder)
 
 
     # In[ ]:
 
 
-    # Prepare the emission tracker using configuration from cfg
-    #tracker = easy_torch.preparation.prepare_emission_tracker(**cfg["model"]["emission_tracker"], experiment_id=experiment_id)
+    trainer = easy_torch.preparation.complete_prepare_trainer(cfg, experiment_id, additional_module=easy_rec)#, raytune=raytune)
 
+    model = easy_torch.preparation.complete_prepare_model(cfg, main_module, additional_module=easy_rec)
 
-    # ### Train
 
     # In[ ]:
 
+
+    # if exp_found and if_exp_found == "load":
+    #     easy_torch.process.load_model(trainer, model, experiment_id)
+
+    easy_torch.process.test_model(trainer, model, loaders, test_key=["val","test","train"])
 
     # Train the model using the prepared trainer, model, and data loaders
     easy_torch.process.train_model(trainer, model, loaders, val_key=["val","test"])
-
-
-    # ### TEST
-
-    # In[ ]:
-
-
-    easy_torch.process.test_model(trainer, model, loaders)
-
-
-    # In[ ]:
-
-
-    # Save experiment and print the current configuration
-    #save_experiment_and_print_config(cfg)
-    easy_exp.exp.save_experiment(cfg)
-
-    # Print completion message
-    print("Execution completed.")
-    print("######################################################################")
-    print()
 

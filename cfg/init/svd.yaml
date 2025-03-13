@@ -1,9 +1,11 @@
 method: svd
-mean_imputation_strategy: item
+# mean_imputation_strategy: both
 svd_params:
   full_matrices: False
 
 # Only for recsys training
-# use_diag: False
-# freeze_emb: False
-# cutoff: True #check in code, if true: use knee, if False: don't use, if integer: cutoff at that integer
+training:
+  use_diag: False
+  freeze_emb: False
+  cutoff: False #False #True #if true: use knee, if False: don't use, if integer: cutoff at that integer
+  invert_order: False

@@ -1,0 +1,10 @@
++data_params: data_cfg
+
++model: model_tune
+
+# if not using svd, just comment the svd line
++init: svd #svd #leporid
+
+#EXPERIMENT PARAMETERS - NOT SAVED AS PART OF THE CONFIGURATION
+__exp__:
+    name: test-5-feb #8-gen
